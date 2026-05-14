@@ -123,7 +123,7 @@ export default {
     },
     setStateFromQueryArgs: function () {
       // Check whether the observing panel must be displayed
-      this.$store.commit('setValue', { varName: 'showSidePanel', newValue: this.$route.path.startsWith('/p/') })
+      this.$store.commit('setValue', { varName: 'showSidePanel', newValue: this.$route.path === '/p' || this.$route.path.startsWith('/p/') })
 
       // Set the core's state from URL query arguments such
       // as date, location, view direction & fov
@@ -173,6 +173,29 @@ export default {
           console.log("Couldn't find skysource for name: " + name)
         })
       }
+    },
+    getAssetBaseUrl: function () {
+      return process.env.BASE_URL === './' ? '/' : process.env.BASE_URL
+    },
+    probeSkydataAssets: function (assetBase) {
+      const propsUrl = assetBase + 'skydata/stars/properties'
+      const tileUrl = assetBase + 'skydata/stars/Norder0/Dir0/Npix0.eph'
+
+      fetch(propsUrl, { cache: 'no-store' }).then(response => {
+        return response.text().then(text => {
+          console.log('[skydata probe] properties', response.status, propsUrl, text.substring(0, 120))
+        })
+      }).catch(error => {
+        console.log('[skydata probe] properties failed', propsUrl, error)
+      })
+
+      fetch(tileUrl, { cache: 'no-store' }).then(response => {
+        return response.arrayBuffer().then(buffer => {
+          console.log('[skydata probe] Npix0', response.status, tileUrl, buffer.byteLength + ' bytes')
+        })
+      }).catch(error => {
+        console.log('[skydata probe] Npix0 failed', tileUrl, error)
+      })
     }
   },
   computed: {
@@ -233,9 +256,17 @@ export default {
             that.$store.commit('setAutoDetectedLocation', loc)
           }, (error) => { console.log(error) })
 
-          that.$stel.setFont('regular', process.env.BASE_URL + 'fonts/Roboto-Regular.ttf', 1.38)
-          that.$stel.setFont('bold', process.env.BASE_URL + 'fonts/Roboto-Bold.ttf', 1.38)
+          const assetBase = that.getAssetBaseUrl()
+          that.probeSkydataAssets(assetBase)
+          that.$stel.setFont('regular', assetBase + 'fonts/Roboto-Regular.ttf', 1.38)
+          that.$stel.setFont('bold', assetBase + 'fonts/Roboto-Bold.ttf', 1.38)
           that.$stel.core.constellations.show_only_pointed = false
+          that.$stel.core.bortle_index = 1
+          that.$stel.core.star_linear_scale = 1.4
+          that.$stel.core.star_relative_scale = 1.0
+          that.$stel.core.atmosphere.visible = false
+          that.$stel.core.stars.visible = true
+          that.$stel.core.stars.hints_visible = true
 
           that.setStateFromQueryArgs()
           that.guiComponent = 'Gui'
@@ -246,10 +277,12 @@ export default {
             }
           }
 
+          swh.warmNoctuaSkyApiConnection()
+
           if (!that.dataSourceInitDone) {
             // Set all default data sources
             const core = that.$stel.core
-            core.stars.addDataSource({ url: process.env.BASE_URL + 'skydata/stars' })
+            core.stars.addDataSource({ url: assetBase + 'skydata/stars' })
 
             // Allow to specify a custom path for sky culture data
             if (that.$route.query.sc) {
@@ -257,18 +290,18 @@ export default {
               core.skycultures.addDataSource({ url: that.$route.query.sc, key: key })
               core.skycultures.current_id = key
             } else {
-              core.skycultures.addDataSource({ url: process.env.BASE_URL + 'skydata/skycultures/western', key: 'western' })
+              core.skycultures.addDataSource({ url: assetBase + 'skydata/skycultures/western', key: 'western' })
             }
 
-            core.dsos.addDataSource({ url: process.env.BASE_URL + 'skydata/dso' })
-            core.landscapes.addDataSource({ url: process.env.BASE_URL + 'skydata/landscapes/guereins', key: 'guereins' })
-            core.milkyway.addDataSource({ url: process.env.BASE_URL + 'skydata/surveys/milkyway' })
-            core.minor_planets.addDataSource({ url: process.env.BASE_URL + 'skydata/mpcorb.dat', key: 'mpc_asteroids' })
-            core.planets.addDataSource({ url: process.env.BASE_URL + 'skydata/surveys/sso/moon', key: 'moon' })
-            core.planets.addDataSource({ url: process.env.BASE_URL + 'skydata/surveys/sso/sun', key: 'sun' })
-            core.planets.addDataSource({ url: process.env.BASE_URL + 'skydata/surveys/sso/moon', key: 'default' })
-            core.comets.addDataSource({ url: process.env.BASE_URL + 'skydata/CometEls.txt', key: 'mpc_comets' })
-            core.satellites.addDataSource({ url: process.env.BASE_URL + 'skydata/tle_satellite.jsonl.gz', key: 'jsonl/sat' })
+            core.dsos.addDataSource({ url: assetBase + 'skydata/dso' })
+            core.landscapes.addDataSource({ url: assetBase + 'skydata/landscapes/guereins', key: 'guereins' })
+            core.milkyway.addDataSource({ url: assetBase + 'skydata/surveys/milkyway' })
+            core.minor_planets.addDataSource({ url: assetBase + 'skydata/mpcorb.dat', key: 'mpc_asteroids' })
+            core.planets.addDataSource({ url: assetBase + 'skydata/surveys/sso/moon', key: 'moon' })
+            core.planets.addDataSource({ url: assetBase + 'skydata/surveys/sso/sun', key: 'sun' })
+            core.planets.addDataSource({ url: assetBase + 'skydata/surveys/sso/moon', key: 'default' })
+            core.comets.addDataSource({ url: assetBase + 'skydata/CometEls.txt', key: 'mpc_comets' })
+            that.dataSourceInitDone = true
           }
         })
       } catch (e) {
@@ -337,6 +370,12 @@ html, body, #app {
 
 .right_panel {
   padding-right: 400px;
+}
+
+@media (max-width: 900px) {
+  .right_panel {
+    padding-right: 0 !important;
+  }
 }
 
 .v-btn {

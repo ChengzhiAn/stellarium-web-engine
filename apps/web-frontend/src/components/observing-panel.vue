@@ -54,6 +54,11 @@ export default {
   height: 100%;
   width: 400px;
   right: -400px;
+  top: 0;
+  z-index: 5;
+}
+#observing-panel-container:not(.observingpanelhidden) {
+  right: 0;
 }
 #observing-panel {
   height: 100%;
@@ -77,5 +82,18 @@ export default {
 }
 .tab-bt-active {
   opacity: 1;
+}
+@media (max-width: 900px) {
+  #observing-panel-container {
+    width: 100vw;
+    max-width: 100vw;
+    right: -100vw;
+  }
+  #observing-panel-container:not(.observingpanelhidden) {
+    right: 0;
+  }
+  .observing-panel-tabsbtn {
+    right: min(400px, 100vw);
+  }
 }
 </style>

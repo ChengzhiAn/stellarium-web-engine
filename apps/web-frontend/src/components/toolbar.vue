@@ -16,8 +16,7 @@
       <target-search></target-search>
       <v-spacer></v-spacer>
       <div v-if="$store.state.showFPS" class="subheader grey--text hidden-sm-and-down pr-2" style="user-select: none;">FPS {{ $store.state.stel ? $store.state.stel.fps.toFixed(1) : '?' }}</div>
-      <div class="subheader grey--text hidden-sm-and-down" style="user-select: none;">FOV {{ fov }}</div>
-      <v-btn class="transparent" v-if="!$store.state.showSidePanel" to="/p">{{ $t('Observe') }}<v-icon>mdi-chevron-down</v-icon></v-btn>
+      <div class="subheader grey--text" style="user-select: none; padding-right: max(8px, env(safe-area-inset-right, 0px));">FOV {{ fov }}</div>
     </v-toolbar>
   </div>
 </template>
@@ -52,7 +51,9 @@ export default {
   background: url("../assets/images/header.png") center;
   background-position-x: 55px;
   background-position-y: 0px;
-  height: 48px;
+  min-height: 48px;
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: content-box;
   z-index: 1;
   position: absolute;
   top: 0px;
@@ -63,6 +64,15 @@ export default {
 #stellarium-web-toolbar-logo {
   margin-right: 10px;
   margin-left: 30px;
+}
+
+@media (max-width: 600px) {
+  #stellarium-web-toolbar-logo {
+    margin-left: 8px;
+  }
+  #toolbar-image {
+    background-position-x: 8px;
+  }
 }
 
 .tbtitle {

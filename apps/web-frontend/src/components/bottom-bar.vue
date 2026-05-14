@@ -7,7 +7,8 @@
 // repository.
 
 <template>
-  <div style="position: absolute; display:flex; align-items: flex-end;">
+  <div class="sw-bottom-bar-root">
+    <div class="sw-bottom-bar-scroll">
     <div v-if="$store.state.showLocationButton" class="tbtcontainer" style="max-width: 300px; display:flex; align-items: flex-end;">
       <v-btn class="tmenubt" color="secondary" @click.stop.native="locationClicked()"><v-icon class="hidden-sm-and-up">mdi-map-marker</v-icon><span class="hidden-xs-only">{{ $store.state.currentLocation.short_name }}</span></v-btn>
     </div>
@@ -101,6 +102,7 @@
     </v-menu>
 
   </div>
+  </div>
 </template>
 
 <script>
@@ -177,6 +179,26 @@ export default {
 </script>
 
 <style>
+.sw-bottom-bar-root {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+.sw-bottom-bar-scroll {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.sw-bottom-bar-scroll::-webkit-scrollbar {
+  display: none;
+}
 @media all and (max-width: 600px) {
   .tmenubt {
     min-width: 30px;

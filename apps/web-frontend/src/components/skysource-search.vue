@@ -8,7 +8,19 @@
 
 <template>
   <div style="position: relative;" v-click-outside="resetSearch">
-    <v-text-field prepend-icon="mdi-magnify" :label="$t('Search...')" v-model="searchText" @keyup.native.esc="resetSearch()" hide-details single-line></v-text-field>
+    <v-text-field
+      ref="searchInput"
+      prepend-icon="mdi-magnify"
+      :label="$t('Search...')"
+      v-model="searchText"
+      @input="setSearchText"
+      @input.native="syncSearchTextFromInput"
+      @compositionupdate.native="syncSearchTextFromInput"
+      @keyup.native="syncSearchTextFromInput"
+      @keyup.native.esc="resetSearch()"
+      hide-details
+      single-line
+    ></v-text-field>
     <v-list dense v-if="showList" two-line :style="listStyle">
       <v-list-item v-for="source in autoCompleteChoices" :key="source.names[0]" @click="sourceClicked(source)">
         <v-list-item-action>
@@ -33,7 +45,9 @@ export default {
     return {
       autoCompleteChoices: [],
       searchText: '',
-      lastQuery: undefined
+      lastQuery: undefined,
+      skyClickHandler: undefined,
+      inputPoller: undefined
     }
   },
   props: ['value', 'floatingList'],
@@ -63,6 +77,25 @@ export default {
     resetSearch: function () {
       this.searchText = ''
     },
+    setSearchText: function (value) {
+      const next = typeof value === 'string' ? value : ''
+      if (next !== this.searchText) {
+        this.searchText = next
+      }
+    },
+    syncSearchTextFromInput: function (event) {
+      const value = event && event.target ? event.target.value : ''
+      if (value !== this.searchText) {
+        this.searchText = value
+      }
+    },
+    syncSearchTextFromDom: function () {
+      const input = this.$el.querySelector('input')
+      if (!input) return
+      if (input.value !== this.searchText) {
+        this.searchText = input.value
+      }
+    },
     refresh: _.debounce(function () {
       var that = this
       let str = that.searchText
@@ -72,13 +105,15 @@ export default {
         return
       }
       this.lastQuery = str
+      console.log('[search] query', str)
       swh.querySkySources(str, 10).then(results => {
         if (str !== that.lastQuery) {
           console.log('Cancelled query: ' + str)
           return
         }
+        console.log('[search] results', str, results.length)
         that.autoCompleteChoices = results
-      }, err => { console.log(err) })
+      }, err => { console.log('[search] error', str, err) })
     }, 200),
     nameForSkySource: function (s) {
       const cn = swh.cleanupOneSkySourceName(s.match)
@@ -98,13 +133,25 @@ export default {
   },
   mounted: function () {
     var that = this
-    const onClick = e => {
+    this.skyClickHandler = e => {
       if (that.searchText !== '') {
         that.searchText = ''
       }
     }
-    const guiParent = document.querySelector('stel') || document.body
-    guiParent.addEventListener('click', onClick, false)
+    const skyCanvas = document.querySelector('#stel')
+    if (skyCanvas) {
+      skyCanvas.addEventListener('click', this.skyClickHandler, false)
+    }
+    this.inputPoller = window.setInterval(this.syncSearchTextFromDom, 250)
+  },
+  beforeDestroy: function () {
+    const skyCanvas = document.querySelector('#stel')
+    if (skyCanvas && this.skyClickHandler) {
+      skyCanvas.removeEventListener('click', this.skyClickHandler, false)
+    }
+    if (this.inputPoller) {
+      window.clearInterval(this.inputPoller)
+    }
   },
   directives: {
     clickOutside: vClickOutside.directive

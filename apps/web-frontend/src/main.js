@@ -10,6 +10,7 @@
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 import App from './App.vue'
+import ObservingFallback from '@/components/observing-fallback.vue'
 import vuetify from './plugins/vuetify'
 import 'roboto-fontface/css/roboto/roboto-fontface.css'
 import '@mdi/font/css/materialdesignicons.css'
@@ -25,6 +26,11 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css'
 import VueI18n from 'vue-i18n'
 import Moment from 'moment'
+
+import { Capacitor } from '@capacitor/core'
+import { StatusBar, Style } from '@capacitor/status-bar'
+import { SplashScreen } from '@capacitor/splash-screen'
+import { App as CapApp } from '@capacitor/app'
 
 Vue.config.productionTip = false
 
@@ -131,6 +137,16 @@ for (const i in Vue.SWPlugins) {
     Vue.use(plugin.vuePlugin)
   }
 }
+const hasCalendarRoute = routes[0].children.some(function (r) {
+  return r.path === 'p/calendar' || r.path === '/p/calendar'
+})
+if (!hasCalendarRoute) {
+  routes[0].children.push({
+    path: 'p/calendar',
+    component: ObservingFallback,
+    meta: { prio: 2, tabName: 'Calendar' }
+  })
+}
 routes[0].children.push({ path: '/p', redirect: defaultObservingRoute.path })
 var router = new Router({
   mode: 'history',
@@ -143,10 +159,36 @@ Vue.prototype.$stellariumWebPlugins = function () {
   return Vue.SWPlugins
 }
 
-/* eslint-disable no-new */
-new Vue({
-  router,
-  store,
-  i18n,
-  vuetify
-}).$mount('#app')
+async function initCapacitorShell () {
+  if (!Capacitor.isNativePlatform()) return
+  try {
+    await SplashScreen.hide()
+  } catch (e) {
+    console.warn('SplashScreen.hide', e)
+  }
+  try {
+    await StatusBar.setOverlaysWebView({ overlay: true })
+    await StatusBar.setStyle({ style: Style.Dark })
+  } catch (e) {
+    console.warn('StatusBar', e)
+  }
+  CapApp.addListener('backButton', () => {
+    if (window.history.length > 1) {
+      window.history.back()
+    } else {
+      CapApp.exitApp()
+    }
+  })
+}
+
+initCapacitorShell()
+  .catch((e) => console.warn('initCapacitorShell', e))
+  .finally(() => {
+    /* eslint-disable no-new */
+    new Vue({
+      router,
+      store,
+      i18n,
+      vuetify
+    }).$mount('#app')
+  })

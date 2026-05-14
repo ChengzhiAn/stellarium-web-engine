@@ -6,11 +6,21 @@
   "author": "Stellarium Labs <contact@stellarium-labs.com>",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider vue-cli-service build",
+    "build:cap": "cross-env CAPACITOR_BUILD=1 NODE_OPTIONS=--openssl-legacy-provider vue-cli-service build",
     "lint": "vue-cli-service lint",
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider vue-cli-service serve",
-    "i18n": "vue-cli-service i18n:report"
+    "i18n": "vue-cli-service i18n:report",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "android:build": "npm run build:cap && npx cap sync android",
+    "postinstall": "node scripts/patch-capacitor-android.js"
   },
   "dependencies": {
+    "@capacitor/android": "6.2.1",
+    "@capacitor/app": "6.0.3",
+    "@capacitor/core": "6.2.1",
+    "@capacitor/splash-screen": "6.0.4",
+    "@capacitor/status-bar": "6.0.3",
     "@mdi/font": "^3.6.95",
     "core-js": "^3.4.4",
     "leaflet": "^1.7.1",
@@ -29,6 +39,7 @@
     "vuex": "^3.0.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "6.2.1",
     "@kazupon/vue-i18n-loader": "^0.3.0",
     "@vue/cli-plugin-babel": "~4.5.15",
     "@vue/cli-plugin-eslint": "~4.5.15",

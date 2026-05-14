@@ -188,11 +188,22 @@ export default {
         this.$store.commit('setSelectedObject', 0)
         return
       }
-      swh.sweObj2SkySource(this.$stel.core.selection).then(res => {
+      const obj = this.$stel.core.selection
+      const reqId = s
+      const localSs = swh.normalizeSkySourceFromSweObj(obj)
+      const hasLocalUi = !!(localSs && localSs.model && localSs.names && localSs.names.length)
+      if (hasLocalUi) {
+        this.$store.commit('setSelectedObject', localSs)
+      }
+      swh.sweObj2SkySource(obj).then(res => {
+        if (this.stelSelectionId !== reqId) return
         this.$store.commit('setSelectedObject', res)
       }, err => {
+        if (this.stelSelectionId !== reqId) return
         console.log("Couldn't find info for object " + s + ':' + err)
-        this.$store.commit('setSelectedObject', 0)
+        if (!hasLocalUi) {
+          this.$store.commit('setSelectedObject', 0)
+        }
       })
     },
     showShareLinkDialog: function (b) {

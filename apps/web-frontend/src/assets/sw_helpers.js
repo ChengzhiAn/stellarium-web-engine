@@ -10,6 +10,7 @@ import Vue from 'vue'
 import _ from 'lodash'
 import StelWebEngine from '@/assets/js/stellarium-web-engine.js'
 import Moment from 'moment'
+import { Capacitor, CapacitorHttp } from '@capacitor/core'
 
 var DDDate = Date
 DDDate.prototype.getJD = function () {
@@ -29,6 +30,87 @@ DDDate.prototype.setMJD = function (mjd) {
 }
 
 const swh = {
+  getMainlandMapKey: function () {
+    return process.env.VUE_APP_AMAP_WEB_SERVICE_KEY || ''
+  },
+
+  getNoctuaSkyApiUrl: function (path) {
+    return (process.env.VUE_APP_NOCTUASKY_API_SERVER || '') + path
+  },
+
+  fetchJson: function (url) {
+    if (Capacitor.isNativePlatform() && /^https?:\/\//.test(url)) {
+      return CapacitorHttp.get({ url: url }).then(function (response) {
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error('HTTP ' + response.status + ': ' + url)
+        }
+        return typeof response.data === 'string' ? JSON.parse(response.data) : response.data
+      })
+    }
+
+    return fetch(url).then(function (response) {
+      if (!response.ok) {
+        throw new Error('HTTP ' + response.status + ': ' + url)
+      }
+      return response.json()
+    })
+  },
+
+  isInMainlandChina: function (lat, lng) {
+    return lng >= 72.004 && lng <= 137.8347 && lat >= 0.8293 && lat <= 55.8271
+  },
+
+  transformChinaLat: function (x, y) {
+    const pi = Math.PI
+    let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x))
+    ret += (20.0 * Math.sin(6.0 * x * pi) + 20.0 * Math.sin(2.0 * x * pi)) * 2.0 / 3.0
+    ret += (20.0 * Math.sin(y * pi) + 40.0 * Math.sin(y / 3.0 * pi)) * 2.0 / 3.0
+    ret += (160.0 * Math.sin(y / 12.0 * pi) + 320 * Math.sin(y * pi / 30.0)) * 2.0 / 3.0
+    return ret
+  },
+
+  transformChinaLng: function (x, y) {
+    const pi = Math.PI
+    let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x))
+    ret += (20.0 * Math.sin(6.0 * x * pi) + 20.0 * Math.sin(2.0 * x * pi)) * 2.0 / 3.0
+    ret += (20.0 * Math.sin(x * pi) + 40.0 * Math.sin(x / 3.0 * pi)) * 2.0 / 3.0
+    ret += (150.0 * Math.sin(x / 12.0 * pi) + 300.0 * Math.sin(x / 30.0 * pi)) * 2.0 / 3.0
+    return ret
+  },
+
+  wgs84ToGcj02: function (lat, lng) {
+    if (!this.isInMainlandChina(lat, lng)) return { lat: lat, lng: lng }
+
+    const pi = Math.PI
+    const a = 6378245.0
+    const ee = 0.00669342162296594323
+    let dLat = this.transformChinaLat(lng - 105.0, lat - 35.0)
+    let dLng = this.transformChinaLng(lng - 105.0, lat - 35.0)
+    const radLat = lat / 180.0 * pi
+    let magic = Math.sin(radLat)
+    magic = 1 - ee * magic * magic
+    const sqrtMagic = Math.sqrt(magic)
+    dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi)
+    dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * pi)
+    return { lat: lat + dLat, lng: lng + dLng }
+  },
+
+  gcj02ToWgs84: function (lat, lng) {
+    if (!this.isInMainlandChina(lat, lng)) return { lat: lat, lng: lng }
+
+    const gcj = this.wgs84ToGcj02(lat, lng)
+    return { lat: lat * 2 - gcj.lat, lng: lng * 2 - gcj.lng }
+  },
+
+  locationToMapLatLng: function (loc) {
+    const p = this.wgs84ToGcj02(loc.lat, loc.lng)
+    return [p.lat, p.lng]
+  },
+
+  mapLatLngToWgs84: function (lat, lng) {
+    return this.gcj02ToWgs84(lat, lng)
+  },
+
   initStelWebEngine: function (store, wasmFile, canvasElem, callBackOnDone) {
     StelWebEngine({
       wasmFile: wasmFile,
@@ -278,30 +360,40 @@ const swh = {
   },
 
   lookupSkySourceByName: function (name) {
-    return fetch(process.env.VUE_APP_NOCTUASKY_API_SERVER + '/api/v1/skysources/name/' + name)
-      .then(function (response) {
-        if (!response.ok) {
-          throw response.body
-        }
-        return response.json()
-      }, err => {
-        throw err.response.body
-      })
+    const url = this.getNoctuaSkyApiUrl('/api/v1/skysources/name/' + encodeURIComponent(name))
+    return this.fetchJson(url)
+  },
+
+  // Clone + fixups from engine JSON (same shape as NoctuaSky skysource). Used when API fails
+  // and to show the selection panel immediately before the first network round-trip.
+  normalizeSkySourceFromSweObj: function (obj) {
+    if (!obj || !obj.jsonData) return null
+    const ss = JSON.parse(JSON.stringify(obj.jsonData))
+    if (!ss.model_data) {
+      ss.model_data = {}
+    }
+    for (const i in ss.names || []) {
+      if (ss.names[i].startsWith('GAIA')) {
+        ss.names[i] = ss.names[i].replace(/^GAIA /, 'Gaia DR2 ')
+      }
+    }
+    ss.culturalNames = obj.culturalDesignations()
+    return ss
+  },
+
+  // First HTTPS request to NoctuaSky pays DNS+TLS; warm it during idle time after startup.
+  warmNoctuaSkyApiConnection: function () {
+    try {
+      this.querySkySources('Sun', 1).catch(function () {})
+    } catch (e) {}
   },
 
   querySkySources: function (str, limit) {
     if (!limit) {
       limit = 10
     }
-    return fetch(process.env.VUE_APP_NOCTUASKY_API_SERVER + '/api/v1/skysources/?q=' + str + '&limit=' + limit)
-      .then(function (response) {
-        if (!response.ok) {
-          throw response.body
-        }
-        return response.json()
-      }, err => {
-        throw err.response.body
-      })
+    const url = this.getNoctuaSkyApiUrl('/api/v1/skysources/?q=' + encodeURIComponent(str) + '&limit=' + encodeURIComponent(limit))
+    return this.fetchJson(url)
   },
 
   sweObj2SkySource: function (obj) {
@@ -325,18 +417,10 @@ const swh = {
     const printErr = function (n) {
       console.log("Couldn't find online skysource data for name: " + n)
 
-      const ss = obj.jsonData
-      if (!ss.model_data) {
-        ss.model_data = {}
+      const ss = that.normalizeSkySourceFromSweObj(obj)
+      if (!ss) {
+        return Promise.reject(new Error("Can't build local skysource data"))
       }
-      // Names fixup
-      let i
-      for (i in ss.names) {
-        if (ss.names[i].startsWith('GAIA')) {
-          ss.names[i] = ss.names[i].replace(/^GAIA /, 'Gaia DR2 ')
-        }
-      }
-      ss.culturalNames = obj.culturalDesignations()
       return ss
     }
 
@@ -368,6 +452,9 @@ const swh = {
 
   // Get data for a SkySource from wikipedia
   getSkySourceSummaryFromWikipedia: function (ss) {
+    if (process.env.VUE_APP_DISABLE_WIKIPEDIA === '1' || process.env.VUE_APP_DISABLE_WIKIPEDIA === 'true') {
+      return Promise.resolve(null)
+    }
     let title
     if (ss.model === 'jpl_sso') {
       title = this.cleanupOneSkySourceName(ss.names[0]).toLowerCase()
@@ -420,39 +507,79 @@ const swh = {
   getGeolocation: function () {
     console.log('Getting geolocalization')
 
-    // First get geoIP location, to use as fallback
-    return Vue.jsonp('https://freegeoip.stellarium.org/json/')
-      .then(location => {
-        var pos = {
-          lat: location.latitude,
-          lng: location.longitude,
-          accuracy: 20000
-        }
-        console.log('GeoIP localization: ' + JSON.stringify(pos))
-        return pos
-      }, err => {
-        console.log(err)
-      }).then(geoipPos => {
-        if (navigator.geolocation) {
-          return new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(function (position) {
-              var pos = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-                accuracy: position.coords.accuracy
-              }
-              resolve(pos)
-            }, function () {
-              console.log('Could not get location from browser, use fallback from GeoIP')
-              // No HTML5 Geolocalization support, return geoip fallback values
-              if (geoipPos) {
-                resolve(geoipPos)
-              } else {
-                reject(new Error('Cannot detect position'))
-              }
-            }, { enableHighAccuracy: true })
+    const normalizePos = function (lat, lng, accuracy) {
+      if (typeof lat !== 'number' || typeof lng !== 'number' || !isFinite(lat) || !isFinite(lng)) return null
+      if (Math.abs(lat) < 1e-6 && Math.abs(lng) < 1e-6) return null
+      return { lat: lat, lng: lng, accuracy: accuracy }
+    }
+
+    const fetchAmapIpLocation = function () {
+      const amapKey = swh.getMainlandMapKey()
+      if (!amapKey) return Promise.resolve(null)
+
+      return fetch('https://restapi.amap.com/v3/ip?key=' + encodeURIComponent(amapKey), { credentials: 'omit' })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('AMap IP HTTP ' + r.status)) })
+        .then(function (data) {
+          if (data.status !== '1' || !data.rectangle) return null
+
+          const corners = data.rectangle.split(';').map(function (p) {
+            const pair = p.split(',')
+            return { lng: Number(pair[0]), lat: Number(pair[1]) }
+          }).filter(function (p) {
+            return isFinite(p.lat) && isFinite(p.lng)
           })
-        }
+          if (!corners.length) return null
+
+          const center = corners.reduce(function (acc, p) {
+            acc.lat += p.lat
+            acc.lng += p.lng
+            return acc
+          }, { lat: 0, lng: 0 })
+          center.lat /= corners.length
+          center.lng /= corners.length
+
+          const wgs = swh.gcj02ToWgs84(center.lat, center.lng)
+          return normalizePos(wgs.lat, wgs.lng, 50000)
+        })
+        .catch(function (err) {
+          console.log('AMap IP location failed:', err)
+          return null
+        })
+    }
+
+    const getBrowserPosition = function (enableHighAccuracy, timeoutMs) {
+      if (!navigator.geolocation) {
+        return Promise.reject(new Error('navigator.geolocation unavailable'))
+      }
+      return new Promise(function (resolve, reject) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            resolve({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            })
+          },
+          function (err) {
+            console.log('Browser geolocation error:', err && err.code, err && err.message)
+            reject(err)
+          },
+          { enableHighAccuracy: enableHighAccuracy, timeout: timeoutMs, maximumAge: 120000 }
+        )
+      })
+    }
+
+    // Prefer device fix (with timeout). High accuracy first, then Wi‑Fi/cell‑assisted low accuracy.
+    return getBrowserPosition(true, 22000)
+      .catch(function () { return getBrowserPosition(false, 15000) })
+      .catch(function () {
+        return fetchAmapIpLocation().then(function (geoipPos) {
+          if (geoipPos) {
+            console.log('Using AMap IP fallback: ' + JSON.stringify(geoipPos))
+            return geoipPos
+          }
+          throw new Error('Cannot detect position')
+        })
       })
   },
 
@@ -474,22 +601,79 @@ const swh = {
       accuracy: pos.accuracy,
       street_address: ''
     }
-    return fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + pos.lat + '&lon=' + pos.lng,
-      { headers: { 'Content-Type': 'application/json; charset=UTF-8' } }).then(response => {
-      if (response.ok) {
-        return response.json().then(res => {
-          const city = res.address.city ? res.address.city : (res.address.village ? res.address.village : res.name)
-          loc.short_name = pos.accuracy > 500 ? ctx.$t('Near {0}', [city]) : city
-          loc.country = res.address.country
-          if (pos.accuracy < 50) {
-            loc.street_address = res.address.road ? res.address.road : res.display_name
-          }
-          return loc
-        })
-      } else {
-        console.log('Geocoder failed due to: ' + response.statusText)
+    const amapKey = this.getMainlandMapKey()
+    if (!amapKey || !this.isInMainlandChina(pos.lat, pos.lng)) {
+      return Promise.resolve(loc)
+    }
+
+    const gcj = this.wgs84ToGcj02(pos.lat, pos.lng)
+    const url = 'https://restapi.amap.com/v3/geocode/regeo?key=' + encodeURIComponent(amapKey) +
+      '&location=' + encodeURIComponent(gcj.lng + ',' + gcj.lat) +
+      '&extensions=base&radius=1000&roadlevel=0'
+
+    return fetch(url, { credentials: 'omit' }).then(response => {
+      if (!response.ok) {
+        console.log('AMap reverse geocoder failed due to: ' + response.statusText)
         return loc
       }
+      return response.json().then(res => {
+        if (res.status !== '1' || !res.regeocode) return loc
+
+        const address = res.regeocode.addressComponent || {}
+        const province = Array.isArray(address.province) ? address.province[0] : address.province
+        const city = Array.isArray(address.city) ? address.city[0] : address.city
+        const district = Array.isArray(address.district) ? address.district[0] : address.district
+        const name = district || city || province || res.regeocode.formatted_address
+        if (name) loc.short_name = pos.accuracy > 500 ? ctx.$t('Near {0}', [name]) : name
+        loc.country = address.country || '中国'
+        loc.street_address = res.regeocode.formatted_address || ''
+        return loc
+      })
+    }).catch(err => {
+      console.log('AMap reverse geocoder failed:', err)
+      return loc
+    })
+  },
+
+  searchLocations: function (query) {
+    const amapKey = this.getMainlandMapKey()
+    const q = (query || '').trim()
+    if (!amapKey || !q) return Promise.resolve([])
+
+    const url = 'https://restapi.amap.com/v3/geocode/geo?key=' + encodeURIComponent(amapKey) +
+      '&address=' + encodeURIComponent(q)
+
+    return fetch(url, { credentials: 'omit' }).then(response => {
+      if (!response.ok) return []
+      return response.json().then(res => {
+        if (res.status !== '1' || !Array.isArray(res.geocodes)) return []
+
+        return res.geocodes.map(function (item, index) {
+          if (!item.location) return null
+          const pair = item.location.split(',')
+          const gcjLng = Number(pair[0])
+          const gcjLat = Number(pair[1])
+          if (!isFinite(gcjLat) || !isFinite(gcjLng)) return null
+
+          const wgs = swh.gcj02ToWgs84(gcjLat, gcjLng)
+          const province = Array.isArray(item.province) ? item.province[0] : item.province
+          const city = Array.isArray(item.city) ? item.city[0] : item.city
+          const district = Array.isArray(item.district) ? item.district[0] : item.district
+          return {
+            id: 'amap-' + index + '-' + item.location,
+            short_name: item.formatted_address || district || city || province || q,
+            country: item.country || '中国',
+            lng: wgs.lng,
+            lat: wgs.lat,
+            alt: 0,
+            accuracy: 100,
+            street_address: item.formatted_address || ''
+          }
+        }).filter(function (item) { return item })
+      })
+    }).catch(err => {
+      console.log('AMap geocoder failed:', err)
+      return []
     })
   },
 

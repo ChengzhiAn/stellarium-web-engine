@@ -44,9 +44,16 @@ export default {
 </script>
 
 <style>
-@media all and (min-width: 600px) {
+.tsearch {
+  z-index: 2;
+  max-width: min(420px, 42vw);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+@media all and (max-width: 600px) {
   .tsearch {
-    z-index: 2;
+    max-width: none;
+    width: 100%;
   }
 }
 </style>

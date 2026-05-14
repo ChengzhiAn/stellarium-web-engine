@@ -17,9 +17,12 @@
   <template v-for="(item, i) in dialogs">
     <component :is="item" :key="i + pluginsGuiComponents.length"></component>
   </template>
-  <selected-object-info style="position: absolute; top: 48px; left: 0px; width: 380px; max-width: calc(100vw - 12px); margin: 6px" class="get-click"></selected-object-info>
-  <progress-bars style="position: absolute; bottom: 54px; right: 12px;"></progress-bars>
-  <bottom-bar style="position:absolute; width: 100%; justify-content: center; bottom: 0; display:flex; margin-bottom: 0px" class="get-click"></bottom-bar>
+  <selected-object-info
+    class="get-click sw-selected-info"
+    style="position: absolute; left: 0px; width: 380px; max-width: calc(100vw - 12px); margin: 6px"
+  ></selected-object-info>
+  <progress-bars class="sw-progress-bars" style="position: absolute; right: 12px;"></progress-bars>
+  <bottom-bar class="get-click sw-bottom-bar"></bottom-bar>
 </div>
 
 </template>
@@ -75,4 +78,24 @@ export default {
 </script>
 
 <style>
+.sw-selected-info {
+  top: calc(48px + env(safe-area-inset-top, 0px));
+}
+.sw-progress-bars {
+  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 600px) {
+  .sw-selected-info {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+}
+.sw-bottom-bar {
+  position: absolute;
+  width: 100%;
+  justify-content: center;
+  bottom: 0;
+  display: flex;
+  margin-bottom: 0;
+}
 </style>
