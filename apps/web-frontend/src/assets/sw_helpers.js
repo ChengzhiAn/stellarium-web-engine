@@ -11,6 +11,7 @@ import _ from 'lodash'
 import StelWebEngine from '@/assets/js/stellarium-web-engine.js'
 import Moment from 'moment'
 import { Capacitor, CapacitorHttp } from '@capacitor/core'
+import { getSkySearchQueries, translateSkyName } from '@/assets/sky-name-translations'
 
 var DDDate = Date
 DDDate.prototype.getJD = function () {
@@ -116,8 +117,10 @@ const swh = {
       wasmFile: wasmFile,
       canvas: canvasElem,
       translateFn: function (domain, str) {
+        if (domain === 'sky' || domain === 'skyculture') {
+          return translateSkyName(str)
+        }
         return str
-        // return i18next.t(str, {ns: domain});
       },
       onReady: function (lstel) {
         store.commit('replaceStelWebEngine', lstel.getTree())
@@ -234,25 +237,29 @@ const swh = {
     return Vue.prototype.$stel.designationCleanup(name, flags)
   },
 
-  nameForSkySource: function (skySource) {
+  translateSkyName: function (name, locale) {
+    return translateSkyName(name, locale)
+  },
+
+  nameForSkySource: function (skySource, locale) {
     if (!skySource || !skySource.names) {
       return '?'
     }
-    return this.cleanupOneSkySourceName(skySource.names[0])
+    return translateSkyName(this.cleanupOneSkySourceName(skySource.names[0]), locale)
   },
 
-  culturalNameToList: function (cn) {
+  culturalNameToList: function (cn, locale) {
     const res = []
 
     const formatNative = function (_cn) {
       if (cn.name_native && cn.name_pronounce) {
-        return cn.name_native + ', <i>' + cn.name_pronounce + '</i>'
+        return translateSkyName(cn.name_native, locale) + ', <i>' + translateSkyName(cn.name_pronounce, locale) + '</i>'
       }
       if (cn.name_native) {
-        return cn.name_native
+        return translateSkyName(cn.name_native, locale)
       }
       if (cn.name_pronounce) {
-        return cn.name_pronounce
+        return translateSkyName(cn.name_pronounce, locale)
       }
     }
 
@@ -261,7 +268,7 @@ const swh = {
       res.push(nativeName)
     }
     if (cn.name_translated) {
-      res.push(cn.name_translated)
+      res.push(translateSkyName(cn.name_translated, locale))
     }
     if (!cn.user_prefer_native && nativeName) {
       res.push(nativeName)
@@ -269,7 +276,7 @@ const swh = {
     return res
   },
 
-  namesForSkySource: function (ss, flags) {
+  namesForSkySource: function (ss, flags, locale) {
     // Return a list of cleaned up names
     if (!ss || !ss.names) {
       return []
@@ -278,17 +285,60 @@ const swh = {
     let res = []
     if (ss.culturalNames) {
       for (const i in ss.culturalNames) {
-        res = res.concat(this.culturalNameToList(ss.culturalNames[i]))
+        res = res.concat(this.culturalNameToList(ss.culturalNames[i], locale))
       }
     }
-    res = res.concat(ss.names.map(n => Vue.prototype.$stel.designationCleanup(n, flags)))
+    res = res.concat(ss.names.map(n => translateSkyName(Vue.prototype.$stel.designationCleanup(n, flags), locale)))
     // Remove duplicates, this can happen between * and V* catalogs
     res = res.filter(function (v, i) { return res.indexOf(v) === i })
     res = res.filter(function (v, i) { return !v.startsWith('CON ') })
     return res
   },
 
-  nameForSkySourceType: function (otype) {
+  nameForSkySourceType: function (otype, locale) {
+    const zhTypes = {
+      '*': '恒星',
+      '**': '双星',
+      '**?': '双星',
+      'Pec?': '特殊恒星',
+      'V*': '变星',
+      'V*?': '变星',
+      reg: '天区',
+      SCG: '星系群',
+      ClG: '星系团',
+      GrG: '星系群',
+      IG: '相互作用星系',
+      PaG: '星系对',
+      'C?*': '疏散星团',
+      GlC: '球状星团',
+      'Gl?': '球状星团',
+      OpC: '疏散星团',
+      'Cl*': '疏散星团',
+      'As*': '恒星群',
+      mul: '复合天体',
+      'PN?': '行星状星云',
+      PN: '行星状星云',
+      SNR: '超新星遗迹',
+      'SR?': '超新星遗迹',
+      ISM: '星际物质',
+      PoG: '星系的一部分',
+      QSO: '类星体',
+      G: '星系',
+      'G?': '星系',
+      dso: '深空天体',
+      Asa: '人造卫星',
+      Moo: '卫星',
+      Sun: '太阳',
+      Pla: '行星',
+      DPl: '矮行星',
+      Com: '彗星',
+      MPl: '小行星',
+      SSO: '太阳系天体',
+      Con: '星座'
+    }
+    if (String(locale || '').toLowerCase().startsWith('zh') && zhTypes[otype]) {
+      return zhTypes[otype]
+    }
     const $stel = Vue.prototype.$stel
     const res = $stel.otypeToStr(otype)
     return res || 'Unknown Type'
@@ -388,12 +438,59 @@ const swh = {
     } catch (e) {}
   },
 
+  localSkySourcesFromQueries: function (queries, limit) {
+    const $stel = Vue.prototype.$stel
+    const seen = {}
+    const out = []
+    const that = this
+    if (!$stel) return out
+
+    const addObj = function (query, obj) {
+      if (!obj) return
+      const ss = that.normalizeSkySourceFromSweObj(obj)
+      if (!ss) return
+      const key = ss.names && ss.names.length ? ss.names[0] : query
+      if (!key || seen[key]) return
+      seen[key] = true
+      ss.match = query
+      out.push(ss)
+    }
+
+    for (let i = 0; i < queries.length && out.length < limit; i++) {
+      const query = queries[i]
+      addObj(query, $stel.getObj(query))
+      if (out.length >= limit) break
+      addObj(query, $stel.getObj('NAME ' + query))
+    }
+    return out
+  },
+
   querySkySources: function (str, limit) {
     if (!limit) {
       limit = 10
     }
-    const url = this.getNoctuaSkyApiUrl('/api/v1/skysources/?q=' + encodeURIComponent(str) + '&limit=' + encodeURIComponent(limit))
-    return this.fetchJson(url)
+    const queries = getSkySearchQueries(str, limit)
+    const seen = {}
+    const out = this.localSkySourcesFromQueries(queries, limit)
+    out.forEach(function (item) {
+      const key = item.names && item.names.length ? item.names[0] : item.match
+      if (key) seen[key] = true
+    })
+    const that = this
+    return Promise.all(queries.map(function (query) {
+      const url = that.getNoctuaSkyApiUrl('/api/v1/skysources/?q=' + encodeURIComponent(query) + '&limit=' + encodeURIComponent(limit))
+      return that.fetchJson(url).catch(function () { return [] })
+    })).then(function (chunks) {
+      chunks.forEach(function (results) {
+        results.forEach(function (item) {
+          const key = item.names && item.names.length ? item.names[0] : item.match
+          if (!key || seen[key]) return
+          seen[key] = true
+          out.push(item)
+        })
+      })
+      return out.slice(0, limit)
+    })
   },
 
   sweObj2SkySource: function (obj) {

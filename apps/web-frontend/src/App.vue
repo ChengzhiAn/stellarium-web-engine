@@ -12,6 +12,24 @@
   <v-navigation-drawer v-model="nav" app stateless width="300">
     <v-layout column fill-height>
       <v-list dense>
+        <v-subheader class="grey--text text--darken-1">{{ $t('Language') }}</v-subheader>
+        <v-list-item @click="setAppLocale('zh')" :key="'locale-zh'">
+          <v-list-item-content>
+            <v-list-item-title>中文</v-list-item-title>
+          </v-list-item-content>
+          <v-list-item-action v-if="$i18n.locale === 'zh'">
+            <v-icon color="primary">mdi-check</v-icon>
+          </v-list-item-action>
+        </v-list-item>
+        <v-list-item @click="setAppLocale('en')" :key="'locale-en'">
+          <v-list-item-content>
+            <v-list-item-title>English</v-list-item-title>
+          </v-list-item-content>
+          <v-list-item-action v-if="$i18n.locale === 'en'">
+            <v-icon color="primary">mdi-check</v-icon>
+          </v-list-item-action>
+        </v-list-item>
+        <v-divider class="divider_menu"/>
         <template v-for="(item,i) in menuItems">
           <template v-if="$store.state[item.store_show_menu_item] === false"></template>
           <v-subheader v-else-if="item.header" v-text="item.header" class="grey--text text--darken-1" :key="i"/>
@@ -79,13 +97,6 @@ import Moment from 'moment'
 export default {
   data (context) {
     return {
-      menuItems: [
-        { title: this.$t('View Settings'), icon: 'mdi-settings', store_var_name: 'showViewSettingsDialog', store_show_menu_item: 'showViewSettingsMenuItem' },
-        { title: this.$t('Planets Tonight'), icon: 'mdi-panorama-fisheye', store_var_name: 'showPlanetsVisibilityDialog', store_show_menu_item: 'showPlanetsVisibilityMenuItem' },
-        { divider: true }
-      ].concat(this.getPluginsMenuItems()).concat([
-        { title: this.$t('Data Credits'), footer: true, icon: 'mdi-copyright', store_var_name: 'showDataCreditsDialog' }
-      ]),
       menuComponents: [].concat(this.getPluginsMenuComponents()),
       guiComponent: 'GuiLoader',
       startTimeIsSet: false,
@@ -95,6 +106,9 @@ export default {
   },
   components: { Gui, GuiLoader },
   methods: {
+    setAppLocale: function (code) {
+      this.$setAppLocale(code)
+    },
     getPluginsMenuItems: function () {
       let res = []
       for (const i in this.$stellariumWebPlugins()) {
@@ -199,6 +213,16 @@ export default {
     }
   },
   computed: {
+    menuItems: function () {
+      const t = (k) => this.$t(k)
+      return [
+        { title: t('View Settings'), icon: 'mdi-settings', store_var_name: 'showViewSettingsDialog', store_show_menu_item: 'showViewSettingsMenuItem' },
+        { title: t('Planets Tonight'), icon: 'mdi-panorama-fisheye', store_var_name: 'showPlanetsVisibilityDialog', store_show_menu_item: 'showPlanetsVisibilityMenuItem' },
+        { divider: true }
+      ].concat(this.getPluginsMenuItems()).concat([
+        { title: t('Data Credits'), footer: true, icon: 'mdi-copyright', store_var_name: 'showDataCreditsDialog' }
+      ])
+    },
     nav: {
       get: function () {
         return this.$store.state.showNavigationDrawer
@@ -258,8 +282,11 @@ export default {
 
           const assetBase = that.getAssetBaseUrl()
           that.probeSkydataAssets(assetBase)
-          that.$stel.setFont('regular', assetBase + 'fonts/Roboto-Regular.ttf', 1.38)
-          that.$stel.setFont('bold', assetBase + 'fonts/Roboto-Bold.ttf', 1.38)
+          that.$stel.setFont('regular', assetBase + 'fonts/NotoSansSC-VF.ttf', 1.38)
+            .then(() => that.$stel.setFont('bold', assetBase + 'fonts/NotoSansSC-VF.ttf', 1.38))
+            .then(() => that.$stel.setFont('regular', assetBase + 'fonts/Roboto-Regular.ttf', 1.38))
+            .then(() => that.$stel.setFont('bold', assetBase + 'fonts/Roboto-Bold.ttf', 1.38))
+            .catch((error) => { console.warn('Unable to load sky label fonts', error) })
           that.$stel.core.constellations.show_only_pointed = false
           that.$stel.core.bortle_index = 1
           that.$stel.core.star_linear_scale = 1.4

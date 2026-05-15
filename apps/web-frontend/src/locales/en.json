@@ -54,5 +54,15 @@
   "Moonlight": "Moonlight",
   "Dawn": "Dawn",
   "Twilight": "Twilight",
-  "Daylight": "Daylight"
+  "Daylight": "Daylight",
+  "Also known as": "Also known as",
+  "more on {0}": "more on {0}",
+  "Equatorial J2000 Grid": "Equatorial J2000 Grid",
+  "Language": "Language",
+  "Close": "Close",
+  "Share link": "Share link",
+  "Link": "Link",
+  "Copy": "Copy",
+  "Link copied": "Link copied",
+  "Calendar": "Calendar"
 }

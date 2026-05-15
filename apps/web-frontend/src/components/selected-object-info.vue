@@ -46,13 +46,13 @@
       <v-card style="height: 180px" class="secondary white--text">
         <v-card-title primary-title>
           <div>
-            <h3 class="text-h5 mb-0">Share link</h3>
+            <h3 class="text-h5 mb-0">{{ $t('Share link') }}</h3>
           </div>
         </v-card-title>
         <v-card-text style="width:100%;">
           <v-row style="width: 100%">
-            <v-text-field id="link_inputid" v-model="shareLink" label="Link" solo readonly></v-text-field>
-            <v-btn @click.native.stop="copyLink">Copy</v-btn>
+            <v-text-field id="link_inputid" v-model="shareLink" :label="$t('Link')" solo readonly></v-text-field>
+            <v-btn @click.native.stop="copyLink">{{ $t('Copy') }}</v-btn>
           </v-row>
         </v-card-text>
       </v-card>
@@ -72,7 +72,7 @@
       </v-btn>
     </div>
     <v-snackbar bottom left :timeout="2000" v-model="copied" color="secondary" >
-      Link copied
+      {{ $t('Link copied') }}
     </v-snackbar>
   </v-card>
 </template>
@@ -104,7 +104,7 @@ export default {
       return this.selectedObject ? this.otherNames[0] : 'Selection'
     },
     otherNames: function () {
-      return this.selectedObject ? swh.namesForSkySource(this.selectedObject, 26) : undefined
+      return this.selectedObject ? swh.namesForSkySource(this.selectedObject, 26, this.$i18n.locale) : undefined
     },
     otherNames1to7: function () {
       return this.otherNames.slice(1, 8)

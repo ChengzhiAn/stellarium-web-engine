@@ -116,8 +116,8 @@ export default {
       }, err => { console.log('[search] error', str, err) })
     }, 200),
     nameForSkySource: function (s) {
-      const cn = swh.cleanupOneSkySourceName(s.match)
-      const n = swh.nameForSkySource(s)
+      const cn = swh.translateSkyName(swh.cleanupOneSkySourceName(s.match), this.$i18n.locale)
+      const n = swh.nameForSkySource(s, this.$i18n.locale)
       if (cn === n) {
         return n
       } else {
@@ -125,7 +125,7 @@ export default {
       }
     },
     typeToName: function (t) {
-      return swh.nameForSkySourceType(t)
+      return swh.nameForSkySourceType(t, this.$i18n.locale)
     },
     iconForSkySource: function (s) {
       return swh.iconForSkySource(s)

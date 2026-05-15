@@ -26,6 +26,7 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css'
 import VueI18n from 'vue-i18n'
 import Moment from 'moment'
+import 'moment/locale/zh-cn'
 
 import { Capacitor } from '@capacitor/core'
 import { StatusBar, Style } from '@capacitor/status-bar'
@@ -84,10 +85,25 @@ pluginsLocales.keys().forEach(key => {
   }
 })
 
-const loc = 'en'
-// Un-comment to select user's language automatically
-// loc = (navigator.language || navigator.userLanguage).split('-')[0] || 'en'
-Moment.locale(loc)
+function getInitialLocale () {
+  try {
+    const saved = localStorage.getItem('app_locale')
+    if (saved === 'en' || saved === 'zh') {
+      return saved
+    }
+  } catch (e) {
+    // ignore
+  }
+  const nav = (typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage)) || ''
+  return String(nav).toLowerCase().startsWith('zh') ? 'zh' : 'en'
+}
+
+const loc = getInitialLocale()
+if (typeof window !== 'undefined') {
+  window.__SW_APP_LOCALE = loc
+}
+Moment.locale(loc === 'zh' ? 'zh-cn' : 'en')
+
 var i18n = new VueI18n({
   locale: loc,
   messages: messages,
@@ -95,6 +111,22 @@ var i18n = new VueI18n({
   fallbackLocale: 'en',
   silentTranslationWarn: true
 })
+
+Vue.prototype.$setAppLocale = function (code) {
+  if (code !== 'en' && code !== 'zh') {
+    return
+  }
+  if (typeof window !== 'undefined') {
+    window.__SW_APP_LOCALE = code
+  }
+  this.$i18n.locale = code
+  try {
+    localStorage.setItem('app_locale', code)
+  } catch (e) {
+    // ignore
+  }
+  Moment.locale(code === 'zh' ? 'zh-cn' : 'en')
+}
 
 // Setup routes for the app
 Vue.use(Router)

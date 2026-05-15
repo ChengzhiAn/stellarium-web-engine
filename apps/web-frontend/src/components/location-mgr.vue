@@ -43,7 +43,7 @@
             <div class="mainland-location-search">
               <v-text-field
                 v-model="searchQuery"
-                placeholder="Search..."
+                :placeholder="$t('Search...')"
                 dense
                 solo
                 hide-details

@@ -9,7 +9,7 @@
 <template>
 <v-dialog scrollable max-width='600' v-model="$store.state.showDataCreditsDialog">
   <v-card v-if="$store.state.showDataCreditsDialog">
-    <v-card-title><div class="text-h5">Data Credits</div></v-card-title>
+    <v-card-title><div class="text-h5">{{ $t('Data Credits') }}</div></v-card-title>
     <v-card-text style="height: 600px;">
       <h3>Stars</h3>
       <p>Combination of the following catalogues:
@@ -56,13 +56,16 @@
       <p>All other graphics by <a href="https://stellarium-labs.com" target="_blank" rel="noopener">Stellarium Labs</a></p>
     </v-card-text>
     <v-card-actions>
-      <v-spacer></v-spacer><v-btn text class="blue--text darken-1" @click.native="$store.state.showDataCreditsDialog = false">Close</v-btn>
+      <v-spacer></v-spacer><v-btn text class="blue--text darken-1" @click.native="$store.state.showDataCreditsDialog = false">{{ $t('Close') }}</v-btn>
     </v-card-actions>
   </v-card>
 </v-dialog>
 </template>
 
 <script>
+export default {
+  name: 'DataCreditsDialog'
+}
 </script>
 
 <style>
