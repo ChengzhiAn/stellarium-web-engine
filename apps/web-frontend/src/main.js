@@ -30,8 +30,8 @@ import 'moment/locale/zh-cn'
 
 import { Capacitor } from '@capacitor/core'
 import { StatusBar, Style } from '@capacitor/status-bar'
-import { SplashScreen } from '@capacitor/splash-screen'
 import { App as CapApp } from '@capacitor/app'
+import { installNativeSafeAreaInsets } from '@/utils/native-safe-area'
 
 Vue.config.productionTip = false
 
@@ -193,17 +193,19 @@ Vue.prototype.$stellariumWebPlugins = function () {
 
 async function initCapacitorShell () {
   if (!Capacitor.isNativePlatform()) return
+  const platform = Capacitor.getPlatform()
   try {
-    await SplashScreen.hide()
-  } catch (e) {
-    console.warn('SplashScreen.hide', e)
-  }
-  try {
-    await StatusBar.setOverlaysWebView({ overlay: true })
+    // Android WebView often reports env(safe-area-inset-*) as 0 while overlaying
+    // the status bar; keep content below system bars on Android.
+    await StatusBar.setOverlaysWebView({ overlay: platform === 'ios' })
     await StatusBar.setStyle({ style: Style.Dark })
+    if (platform === 'android') {
+      await StatusBar.setBackgroundColor({ color: '#000000' })
+    }
   } catch (e) {
     console.warn('StatusBar', e)
   }
+  installNativeSafeAreaInsets()
   CapApp.addListener('backButton', () => {
     if (window.history.length > 1) {
       window.history.back()

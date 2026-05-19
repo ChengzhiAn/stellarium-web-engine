@@ -10,8 +10,8 @@
   <div id="toolbar-image">
     <v-toolbar class="transparent" dense>
       <v-app-bar-nav-icon @click="toggleNavigationDrawer"></v-app-bar-nav-icon>
-      <img class="tbtitle hidden-xs-only" id="stellarium-web-toolbar-logo" src="@/assets/images/logo.svg" width="30" height="30" alt="Stellarium Web Logo"/>
-      <span class="tbtitle hidden-sm-and-down">Stellarium<sup>Web</sup></span>
+      <img class="tbtitle hidden-xs-only" id="lenghu-toolbar-logo" src="@/assets/images/lenghu-logo.svg" width="30" height="30" alt="冷湖天文"/>
+      <span class="tbtitle hidden-sm-and-down">冷湖天文</span>
       <v-spacer></v-spacer>
       <target-search></target-search>
       <v-spacer></v-spacer>
@@ -52,7 +52,7 @@ export default {
   background-position-x: 55px;
   background-position-y: 0px;
   min-height: 48px;
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   box-sizing: content-box;
   z-index: 1;
   position: absolute;
@@ -61,13 +61,13 @@ export default {
   width: 100%;
 }
 
-#stellarium-web-toolbar-logo {
+#lenghu-toolbar-logo {
   margin-right: 10px;
   margin-left: 30px;
 }
 
 @media (max-width: 600px) {
-  #stellarium-web-toolbar-logo {
+  #lenghu-toolbar-logo {
     margin-left: 8px;
   }
   #toolbar-image {

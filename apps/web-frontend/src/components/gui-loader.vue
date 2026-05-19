@@ -8,13 +8,13 @@
 
 <template>
 
-<div class="secondary" style="position:absolute; width: 100%; height: 100%;">
+<div class="sw-app-loader" style="position:absolute; width: 100%; height: 100%; z-index: 10;">
   <v-container style="width: 100%; height: 100%;">
     <v-layout column align-center style="width: 100%; height: 100%;">
-      <div class="text-h2" style="padding-top: 10%;"><img src="@/assets/images/logo.svg" width="92" height="92" alt="Stellarium Web Logo"/> Stellarium<sup>Web</sup></div>
+      <div class="text-h2 white--text" style="padding-top: 10%;"><img src="@/assets/images/lenghu-logo.svg" width="92" height="92" alt="冷湖天文"/> 冷湖天文</div>
       <div v-if="$store.state.wasmSupport" style="margin: auto;">
         <div style="display:flex; justify-content: center;">
-          <p class="grey--text"><i18n path="Loading {0}, the online Star Map"><span>Stellarium<sup>Web</sup></span></i18n></p>
+          <p class="grey--text text--lighten-1"><i18n path="Loading {0}, the online Star Map"><span>冷湖天文</span></i18n></p>
         </div>
         <div style="display:flex; justify-content: center;">
           <v-progress-circular indeterminate v-bind:size="70" v-bind:width="7"  class="grey--text"/>
@@ -44,4 +44,7 @@ export default {
 </script>
 
 <style>
+.sw-app-loader {
+  background-color: #000000;
+}
 </style>

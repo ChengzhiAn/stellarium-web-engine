@@ -13,7 +13,7 @@
   "Deep Sky Objects": "Deep Sky Objects",
   "Night Mode": "Night Mode",
   "Fullscreen": "Fullscreen",
-  "Loading {0}, the online Star Map": "Loading {0}, the online Star Map",
+  "Loading {0}, the online Star Map": "Loading {0}…",
   "Could not show the Online Star Map": "Could not show the Online Star Map",
   "It seems that your browser cannot load Web Assembly!": "It seems that your browser cannot load Web Assembly!",
   "Web assembly is necessary for Stellarium Web to display the star map. Please upgrade your web browser and try again!": "Web assembly is necessary for Stellarium Web to display the star map. Please upgrade your web browser and try again!",

@@ -14,7 +14,7 @@
   "Deep Sky Objects": "深空天体",
   "Night Mode": "夜间模式",
   "Fullscreen": "全屏",
-  "Loading {0}, the online Star Map": "正在加载 {0} 在线星图",
+  "Loading {0}, the online Star Map": "正在加载 {0}…",
   "Could not show the Online Star Map": "无法显示在线星图",
   "It seems that your browser cannot load Web Assembly!": "当前环境无法加载 WebAssembly。",
   "Web assembly is necessary for Stellarium Web to display the star map. Please upgrade your web browser and try again!": "显示星图需要 WebAssembly。请升级浏览器或 WebView 后重试。",

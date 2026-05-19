@@ -9,48 +9,43 @@
 <template>
 
 <v-app>
-  <v-navigation-drawer v-model="nav" app stateless width="300">
-    <v-layout column fill-height>
-      <v-list dense>
-        <v-subheader class="grey--text text--darken-1">{{ $t('Language') }}</v-subheader>
-        <v-list-item @click="setAppLocale('zh')" :key="'locale-zh'">
-          <v-list-item-content>
-            <v-list-item-title>中文</v-list-item-title>
-          </v-list-item-content>
-          <v-list-item-action v-if="$i18n.locale === 'zh'">
-            <v-icon color="primary">mdi-check</v-icon>
-          </v-list-item-action>
-        </v-list-item>
-        <v-list-item @click="setAppLocale('en')" :key="'locale-en'">
-          <v-list-item-content>
-            <v-list-item-title>English</v-list-item-title>
-          </v-list-item-content>
-          <v-list-item-action v-if="$i18n.locale === 'en'">
-            <v-icon color="primary">mdi-check</v-icon>
-          </v-list-item-action>
-        </v-list-item>
+  <v-navigation-drawer
+    v-model="nav"
+    app
+    stateless
+    class="sw-nav-drawer"
+    :width="navDrawerWidthPx"
+  >
+    <div ref="navDrawerInner" class="sw-nav-drawer__inner">
+      <div class="sw-nav-drawer__content">
+        <v-list dense class="sw-nav-drawer__list">
+          <v-subheader class="grey--text text--darken-1 sw-nav-drawer__subheader">{{ $t('Language') }}</v-subheader>
+          <v-list-item class="sw-nav-drawer__row" @click="setAppLocale('zh')" :key="'locale-zh'">
+            <span class="sw-nav-drawer__label">中文</span>
+            <v-icon v-if="$i18n.locale === 'zh'" small color="primary" class="sw-nav-drawer__check">mdi-check</v-icon>
+          </v-list-item>
+          <v-list-item class="sw-nav-drawer__row" @click="setAppLocale('en')" :key="'locale-en'">
+            <span class="sw-nav-drawer__label">English</span>
+            <v-icon v-if="$i18n.locale === 'en'" small color="primary" class="sw-nav-drawer__check">mdi-check</v-icon>
+          </v-list-item>
         <v-divider class="divider_menu"/>
         <template v-for="(item,i) in menuItems">
           <template v-if="$store.state[item.store_show_menu_item] === false"></template>
-          <v-subheader v-else-if="item.header" v-text="item.header" class="grey--text text--darken-1" :key="i"/>
+          <v-subheader v-else-if="item.header" v-text="item.header" class="grey--text text--darken-1 sw-nav-drawer__subheader" :key="i"/>
           <v-divider class="divider_menu" v-else-if="item.divider" :key="i"/>
-          <v-list-item v-else-if="item.switch" @click.stop="toggleStoreValue(item.store_var_name)" :key="i">
-            <v-list-item-action>
-              <v-switch value :input-value="getStoreValue(item.store_var_name)" label=""></v-switch>
-            </v-list-item-action>
-            <v-list-item-content>
-              <v-list-item-title>{{ item.title }}</v-list-item-title>
-            </v-list-item-content>
+          <v-list-item v-else-if="item.switch" class="sw-nav-drawer__row" @click.stop="toggleStoreValue(item.store_var_name)" :key="i">
+            <v-switch value :input-value="getStoreValue(item.store_var_name)" label="" hide-details dense class="sw-nav-drawer__switch"/>
+            <span class="sw-nav-drawer__label">{{ item.title }}</span>
           </v-list-item>
           <template v-else>
-            <v-list-item v-if='item.link' target="_blank" rel="noopener" :href='item.link' :key="i">
-              <v-list-item-icon><v-icon>{{ item.icon }}</v-icon></v-list-item-icon>
-              <v-list-item-title v-text="item.title"/>
-              <v-icon disabled>mdi-open-in-new</v-icon>
+            <v-list-item v-if='item.link' class="sw-nav-drawer__row" target="_blank" rel="noopener" :href='item.link' :key="i">
+              <v-icon small class="sw-nav-drawer__icon">{{ item.icon }}</v-icon>
+              <span class="sw-nav-drawer__label" v-text="item.title"/>
+              <v-icon small disabled class="sw-nav-drawer__check">mdi-open-in-new</v-icon>
             </v-list-item>
-            <v-list-item v-else-if='item.footer===undefined' @click.stop="toggleStoreValue(item.store_var_name)" :key="i">
-              <v-list-item-icon><v-icon>{{ item.icon }}</v-icon></v-list-item-icon>
-              <v-list-item-title v-text="item.title"/>
+            <v-list-item v-else-if='item.footer===undefined' class="sw-nav-drawer__row" @click.stop="toggleStoreValue(item.store_var_name)" :key="i">
+              <v-icon small class="sw-nav-drawer__icon">{{ item.icon }}</v-icon>
+              <span class="sw-nav-drawer__label" v-text="item.title"/>
             </v-list-item>
           </template>
         </template>
@@ -58,20 +53,23 @@
       <template v-for="(item,i) in menuComponents">
         <component :is="item" :key="i"></component>
       </template>
-      <v-spacer></v-spacer>
-      <v-list dense>
-        <v-divider class="divider_menu"/>
-        <template v-for="(item,i) in menuItems">
-          <v-list-item v-if='item.footer' @click.stop="toggleStoreValue(item.store_var_name)" :key="i">
-            <v-list-item-icon><v-icon>{{ item.icon }}</v-icon></v-list-item-icon>
-            <v-list-item-title v-text="item.title"/>
-          </v-list-item>
-        </template>
-      </v-list>
-    </v-layout>
+      </div>
+      <div class="sw-nav-drawer__spacer"></div>
+      <div class="sw-nav-drawer__content sw-nav-drawer__footer">
+        <v-list dense class="sw-nav-drawer__list">
+          <v-divider class="divider_menu"/>
+          <template v-for="(item,i) in menuItems">
+            <v-list-item v-if='item.footer' class="sw-nav-drawer__row" @click.stop="toggleStoreValue(item.store_var_name)" :key="i">
+              <v-icon small class="sw-nav-drawer__icon">{{ item.icon }}</v-icon>
+              <span class="sw-nav-drawer__label" v-text="item.title"/>
+            </v-list-item>
+          </template>
+        </v-list>
+      </div>
+    </div>
   </v-navigation-drawer>
 
-  <v-main>
+  <v-main class="sw-main">
     <v-container class="fill-height" fluid style="padding: 0">
       <div id="stel" v-bind:class="{ right_panel: $store.state.showSidePanel }">
         <div style="position: relative; width: 100%; height: 100%">
@@ -93,6 +91,8 @@ import Gui from '@/components/gui.vue'
 import GuiLoader from '@/components/gui-loader.vue'
 import swh from '@/assets/sw_helpers.js'
 import Moment from 'moment'
+import { Capacitor } from '@capacitor/core'
+import { SplashScreen } from '@capacitor/splash-screen'
 
 export default {
   data (context) {
@@ -101,11 +101,27 @@ export default {
       guiComponent: 'GuiLoader',
       startTimeIsSet: false,
       initDone: false,
-      dataSourceInitDone: false
+      dataSourceInitDone: false,
+      navDrawerWidthPx: 168
     }
   },
   components: { Gui, GuiLoader },
   methods: {
+    hideNativeSplash: function () {
+      if (!Capacitor.isNativePlatform()) return
+      SplashScreen.hide().catch(function () {})
+    },
+    showGuiAfterEngineReady: function () {
+      const that = this
+      that.$nextTick(function () {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            that.guiComponent = 'Gui'
+            that.hideNativeSplash()
+          })
+        })
+      })
+    },
     setAppLocale: function (code) {
       this.$setAppLocale(code)
     },
@@ -134,6 +150,14 @@ export default {
     },
     getStoreValue: function (storeVarName) {
       return _.get(this.$store.state, storeVarName)
+    },
+    updateNavDrawerWidth: function () {
+      const root = this.$refs.navDrawerInner
+      if (!root) return
+      const width = root.scrollWidth
+      if (width > 0) {
+        this.navDrawerWidthPx = Math.min(Math.max(width + 8, 152), 220)
+      }
     },
     setStateFromQueryArgs: function () {
       // Check whether the observing panel must be displayed
@@ -238,6 +262,20 @@ export default {
     }
   },
   watch: {
+    nav: function (open) {
+      if (!open) return
+      var that = this
+      this.$nextTick(function () {
+        that.updateNavDrawerWidth()
+      })
+    },
+    '$i18n.locale': function () {
+      if (!this.nav) return
+      var that = this
+      this.$nextTick(function () {
+        that.updateNavDrawerWidth()
+      })
+    },
     storeCurrentLocation: function (loc) {
       const DD2R = Math.PI / 180
       this.$stel.core.observer.latitude = loc.lat * DD2R
@@ -296,7 +334,6 @@ export default {
           that.$stel.core.stars.hints_visible = true
 
           that.setStateFromQueryArgs()
-          that.guiComponent = 'Gui'
           for (const i in that.$stellariumWebPlugins()) {
             const plugin = that.$stellariumWebPlugins()[i]
             if (plugin.onEngineReady) {
@@ -330,9 +367,11 @@ export default {
             core.comets.addDataSource({ url: assetBase + 'skydata/CometEls.txt', key: 'mpc_comets' })
             that.dataSourceInitDone = true
           }
+          that.showGuiAfterEngineReady()
         })
       } catch (e) {
         this.$store.commit('setValue', { varName: 'wasmSupport', newValue: false })
+        this.hideNativeSplash()
       }
     })
   }
@@ -366,6 +405,11 @@ html, body, #app {
   height: 100%;
   padding: 0!important;
   font-size: 14px;
+  background-color: #000000;
+}
+
+.sw-main {
+  background-color: #000000 !important;
 }
 
 .fullscreen {
@@ -392,7 +436,7 @@ html, body, #app {
   background-color: transparent!important;
 }
 
-#stel {height: 100%; width: 100%; position: absolute;}
+#stel {height: 100%; width: 100%; position: absolute; background-color: #000000;}
 #stel-canvas {z-index: -10; width: 100%; height: 100%;}
 
 .right_panel {
@@ -414,6 +458,82 @@ html, body, #app {
 
 .v-application--wrap {
   min-height: 100%!important;
+}
+
+.sw-nav-drawer__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 100%;
+  width: max-content;
+  max-width: 88vw;
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  box-sizing: border-box;
+}
+
+.sw-nav-drawer__content {
+  width: max-content;
+  max-width: 88vw;
+}
+
+.sw-nav-drawer__spacer {
+  flex: 1 1 auto;
+  width: 1px;
+  min-height: 8px;
+}
+
+.sw-nav-drawer__list {
+  padding: 4px 0 !important;
+}
+
+.sw-nav-drawer__row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px;
+  min-height: 34px !important;
+  padding: 0 10px 0 8px !important;
+}
+
+.sw-nav-drawer__row::before,
+.sw-nav-drawer__row::after {
+  display: none !important;
+}
+
+.sw-nav-drawer__icon {
+  flex: 0 0 20px;
+  margin-right: 0 !important;
+}
+
+.sw-nav-drawer__label {
+  flex: 0 1 auto;
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.sw-nav-drawer__check {
+  flex: 0 0 auto;
+  margin-left: 2px !important;
+}
+
+.sw-nav-drawer__switch {
+  flex: 0 0 auto;
+  margin: 0 4px 0 0 !important;
+  padding: 0 !important;
+}
+
+.sw-nav-drawer__subheader {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 10px 0 8px !important;
+  font-size: 12px !important;
+  line-height: 28px !important;
+}
+
+.sw-nav-drawer .divider_menu {
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 
 </style>

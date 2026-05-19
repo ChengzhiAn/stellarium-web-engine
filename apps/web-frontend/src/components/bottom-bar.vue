@@ -184,15 +184,17 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 .sw-bottom-bar-scroll {
   display: flex;
   align-items: flex-end;
   width: 100%;
+  padding-top: 30px;
+  box-sizing: border-box;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }

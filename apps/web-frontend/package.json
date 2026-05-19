@@ -13,6 +13,7 @@
     "cap:sync": "npx cap sync",
     "cap:open:android": "npx cap open android",
     "android:build": "npm run build:cap && npx cap sync android",
+    "cap:icons": "node scripts/sync-app-icon.js && capacitor-assets generate --android --iconBackgroundColor \"#FFFFFF\" --splashBackgroundColor \"#000000\" --splashBackgroundColorDark \"#000000\" && node scripts/generate-splash-brand.js",
     "postinstall": "node scripts/patch-capacitor-android.js"
   },
   "dependencies": {
@@ -39,6 +40,7 @@
     "vuex": "^3.0.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "6.2.1",
     "@kazupon/vue-i18n-loader": "^0.3.0",
     "@vue/cli-plugin-babel": "~4.5.15",

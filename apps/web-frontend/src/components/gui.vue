@@ -79,10 +79,10 @@ export default {
 
 <style>
 .sw-selected-info {
-  top: calc(48px + env(safe-area-inset-top, 0px));
+  top: calc(48px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
 }
 .sw-progress-bars {
-  bottom: calc(54px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(54px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
 }
 @media (max-width: 600px) {
   .sw-selected-info {

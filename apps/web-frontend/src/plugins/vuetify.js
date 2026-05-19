@@ -6,6 +6,12 @@ Vue.use(Vuetify)
 
 export default new Vuetify({
   theme: {
-    dark: true
+    dark: true,
+    themes: {
+      dark: {
+        background: '#000000',
+        surface: '#121212'
+      }
+    }
   }
 })

@@ -22,6 +22,7 @@
     position: relative;
     display: inline-block;
     user-select: none;
+    overflow: visible;
   }
   .bottom-button img {
     width: 100%;
@@ -35,8 +36,15 @@
     display: none;
     position: absolute;
     bottom: 100%;
+    left: 0;
     color: white;
     width: 200px;
+    line-height: 1.45;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+    z-index: 2;
+    pointer-events: none;
+    white-space: nowrap;
   }
   .bottom-button:hover .hint {
     display: block;
